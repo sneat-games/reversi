@@ -1,0 +1,23 @@
+{
+  "name": "reversi-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TypeScript engine + bot for the Reversi web build (Wave 1: engine and bot only; Astro app lands in a later wave).",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.10.0",
+    "eslint": "^9.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
