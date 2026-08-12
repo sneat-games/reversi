@@ -1,4 +1,9 @@
 /dist
 /node_modules
+/.astro
+/.wrangler
+/test-results
+/playwright-report
+/blob-report
 *.log
 .DS_Store

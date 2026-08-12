@@ -1,27 +1,37 @@
-// ESLint flat config (v9+). Kept intentionally small for Wave 1 (engine +
-// bot only, no Astro/DOM code yet) — mirrors the shape of
-// bidding-tictactoe/web/eslint.config.mjs minus the Astro-specific pieces.
+// ESLint flat config (v9+).
 import js from "@eslint/js";
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
+import astro from "eslint-plugin-astro";
+import globals from "globals";
 
 export default [
-  { ignores: ["dist", "node_modules"] },
-  js.configs.recommended,
   {
-    files: ["src/**/*.ts"],
+    ignores: ["dist", "node_modules", ".astro", ".wrangler", "host-worker", "test-results", "playwright-report"],
+  },
+  js.configs.recommended,
+  ...astro.configs.recommended,
+  {
+    files: ["src/**/*.ts", "e2e/**/*.ts", "scripts/**/*.mjs", "*.config.ts", "*.config.mjs"],
     languageOptions: {
       parser: tsParser,
       parserOptions: { ecmaVersion: 2022, sourceType: "module" },
+      globals: { ...globals.browser, ...globals.node },
     },
     plugins: { "@typescript-eslint": tsPlugin },
     rules: {
       ...tsPlugin.configs.recommended.rules,
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/no-explicit-any": "warn",
-      // TypeScript's own compiler already checks this; eslint's no-undef
-      // otherwise false-positives on ambient/global types.
+      // TS already handles this; the DOM/WebRTC globals confuse eslint.
       "no-undef": "off",
+    },
+  },
+  {
+    files: ["src/**/*.astro"],
+    languageOptions: {
+      parser: astro.parser,
+      parserOptions: { extraFileExtensions: [".astro"] },
     },
   },
 ];
