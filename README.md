@@ -1,13 +1,23 @@
 # Reversi game (aka Othello)
 
-Reversi game right in your messenger. Play with friend or practice against AI.
+Reversi in your browser and in your messenger. Play a friend or practice
+against the bot.
 
-  - **Telegram**: [@ReversiGameBot](https://t.me/ReversiGameBot)
-  
+  - **Web**: [reversi.sneat.games](https://reversi.sneat.games) — classic
+    Othello and a hidden-bid **bidding** variant, vs Bot (offline-capable) or
+    vs a friend over WebRTC. Source in [`web/`](web/README.md).
+  - **Telegram**: [@ReversiGameBot](https://t.me/ReversiGameBot) — source in
+    `server-go/`.
+
+Both surfaces share one set of rules: `server-go/revgame` is the rule of
+record, and `web/src/engine/revplay.ts` mirrors it fixture-for-fixture.
+
   Built using:
+   - [`@sneat/game-kit`](https://github.com/sneat-games/game-kit) — the shared
+     web kit (auction core, WebRTC PvP, design system)
    - [Strongo Bots Framework](https://github.com/strongo/bots-framework)
    - [Strongo Database Abstraction Layer](https://github.com/strongo/db)
-   
+
 
 <!-- dev-approach:v1 -->
 ## Our approach to development

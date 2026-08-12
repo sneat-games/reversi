@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Founder naming rule (2026-08-12): host workers drop the `-sneat-games`
+  // suffix — the worker is `reversi-game`, while the custom domain it serves
+  // stays `reversi.sneat.games` below.
+  "name": "reversi-game",
+  "main": "index.ts",
+  "compatibility_date": "2025-08-11",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "../dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    {
+      "pattern": "reversi.sneat.games",
+      "custom_domain": true
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
