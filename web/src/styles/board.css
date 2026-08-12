@@ -1,0 +1,578 @@
+/*
+ * Reversi board + the game-owned cards that theme.css deliberately leaves
+ * out (see game-kit's match-shell.ts: "BOARD RENDERING IS 100% GAME-OWNED").
+ * Every colour is a theme.css token or a color-mix of one, so the board is
+ * correct in both palettes and follows a live theme-toggle switch with no JS.
+ */
+
+/* ---------------------------------------------------------------------- *
+ * Tokens
+ *
+ * Reversi's discs are near-black and near-ivory, not the kit's default
+ * emerald/rose — so this game OVERRIDES --p1/--p2 rather than introducing a
+ * parallel pair of disc colours. That keeps the score card's chips, the
+ * disc-count race bar and the game log's bars automatically identical to the
+ * discs on the board (game-kit/docs/DESIGN.md §Reversi: "the game overrides
+ * --p1/--p2 accordingly so log bars and balances match the discs").
+ *
+ * Because those two colours are near the extremes of the ramp, contrast can
+ * NOT come from hue: every disc, chip and bar carries a visible rim in both
+ * themes, which is what actually separates an ivory disc from a light board
+ * and a near-black disc from a dark one.
+ * ---------------------------------------------------------------------- */
+:root {
+  --accent: #16a34a;
+  --accent-hover: #15803d;
+
+  --p1: #14181f; /* dark disc — near-black, never pure #000 */
+  --p2: #f4efe1; /* light disc — near-ivory, never pure #fff */
+  --p1-rim: #6f7b8f;
+  --p2-rim: #9a8f77;
+
+  /* The board plane: a flat, accent-tinted surface — deliberately not a
+     green-felt skeuomorph (docs/DESIGN.md's "unique hearts, uniform
+     chrome"). */
+  --board-surface: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  --board-line: color-mix(in srgb, var(--accent) 28%, var(--border));
+  --board-star: color-mix(in srgb, var(--accent) 55%, var(--muted));
+  --board-frame: color-mix(in srgb, var(--accent) 35%, var(--border));
+
+  /* theme.css's `.match` grid sizes its left column from --board-width and
+     defaults it to a 3-cell tic-tac-toe board. Leave it unset and the game
+     log overlaps this board AND intercepts its clicks (APP-PLAYBOOK gotcha
+     3). */
+  --board-width: min(94vw, 620px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent-hover: #4ade80;
+    --p1: #0b0e14;
+    --p2: #efe8d8;
+    --p1-rim: #8fa0b8;
+    --p2-rim: #6b6350;
+    --board-surface: color-mix(in srgb, var(--accent) 13%, var(--surface));
+    --board-line: color-mix(in srgb, var(--accent) 34%, var(--border));
+  }
+}
+
+:root[data-theme="dark"] {
+  --accent-hover: #4ade80;
+  --p1: #0b0e14;
+  --p2: #efe8d8;
+  --p1-rim: #8fa0b8;
+  --p2-rim: #6b6350;
+  --board-surface: color-mix(in srgb, var(--accent) 13%, var(--surface));
+  --board-line: color-mix(in srgb, var(--accent) 34%, var(--border));
+}
+
+/* ---------------------------------------------------------------------- *
+ * Board
+ * ---------------------------------------------------------------------- */
+
+.rev-board {
+  width: 100%;
+  margin: 0 auto;
+}
+
+.rev-board__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.rev-board__surface {
+  fill: var(--board-surface);
+  stroke: var(--board-frame);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.rev-board__line {
+  stroke: var(--board-line);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.rev-board__star {
+  fill: var(--board-star);
+}
+
+/* --- discs ---------------------------------------------------------------
+ * The rim is the contrast channel (see the token block above): a near-ivory
+ * disc on a light board and a near-black disc on a dark board are both only
+ * legible because of it. */
+
+.rev-disc {
+  transform-box: fill-box;
+  transform-origin: center;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 1px 1px color-mix(in srgb, black 25%, transparent));
+}
+.rev-disc--p1 {
+  fill: var(--p1);
+  stroke: var(--p1-rim);
+}
+.rev-disc--p2 {
+  fill: var(--p2);
+  stroke: var(--p2-rim);
+}
+
+/* The freshly placed disc drops in. */
+.rev-disc--placed {
+  animation: rev-disc-drop 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes rev-disc-drop {
+  from {
+    transform: scale(1.35);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.rev-disc__last-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5px;
+  opacity: 0.85;
+  vector-effect: non-scaling-stroke;
+}
+
+/* --- the cascading flip --------------------------------------------------
+ * A flipped disc is rendered in its NEW colour and animated backwards
+ * through the turn: it starts wearing the colour it is flipping FROM,
+ * narrows to its edge — where it briefly shows only the rim, exactly like a
+ * physical disc caught side-on — and opens out in the new colour. board.ts
+ * sets `animation-delay` per disc from its distance to the placed disc, so
+ * the capture radiates outward instead of switching all at once. Pure CSS:
+ * no per-frame JS anywhere. */
+
+.rev-disc--flip {
+  animation: rev-disc-flip 180ms ease-in-out both;
+}
+.rev-disc--p1.rev-disc--flip {
+  /* flipping TO dark, so it starts light */
+  --flip-from: var(--p2);
+  --flip-from-rim: var(--p2-rim);
+  --flip-to: var(--p1);
+  --flip-to-rim: var(--p1-rim);
+}
+.rev-disc--p2.rev-disc--flip {
+  --flip-from: var(--p1);
+  --flip-from-rim: var(--p1-rim);
+  --flip-to: var(--p2);
+  --flip-to-rim: var(--p2-rim);
+}
+@keyframes rev-disc-flip {
+  0% {
+    transform: scaleX(1);
+    fill: var(--flip-from);
+    stroke: var(--flip-from-rim);
+  }
+  48% {
+    transform: scaleX(0.08);
+    fill: var(--flip-from);
+    stroke: var(--flip-from-rim);
+  }
+  50% {
+    transform: scaleX(0.08);
+    fill: var(--flip-from-rim);
+    stroke: var(--flip-from-rim);
+  }
+  52% {
+    transform: scaleX(0.08);
+    fill: var(--flip-to);
+    stroke: var(--flip-to-rim);
+  }
+  100% {
+    transform: scaleX(1);
+    fill: var(--flip-to);
+    stroke: var(--flip-to-rim);
+  }
+}
+
+/* --- legal-move hints ---------------------------------------------------- */
+
+.rev-hint {
+  opacity: 0.34;
+  pointer-events: none;
+}
+.rev-hint--p1 {
+  fill: var(--p1);
+}
+.rev-hint--p2 {
+  fill: var(--p2);
+  stroke: var(--p2-rim);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+/* --- hover/focus capture preview ----------------------------------------- */
+
+.rev-ghost {
+  opacity: 0.45;
+  pointer-events: none;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.rev-ghost--p1 {
+  fill: var(--p1);
+  stroke: var(--p1-rim);
+}
+.rev-ghost--p2 {
+  fill: var(--p2);
+  stroke: var(--p2-rim);
+}
+
+/* Every disc the hovered move would flip gets a ring in the mover's colour —
+ * the single most useful thing a Reversi board can show you before you
+ * commit. */
+.rev-flip-outline {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-dasharray: 7 5;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+  animation: rev-outline-spin 1.4s linear infinite;
+}
+.rev-flip-outline--p1 {
+  stroke: var(--p1-rim);
+}
+.rev-flip-outline--p2 {
+  stroke: var(--p2-rim);
+}
+@keyframes rev-outline-spin {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+/* --- cells (transparent hit targets on top of everything) ----------------- */
+
+.rev-cell {
+  fill: transparent;
+  stroke: none;
+}
+.rev-cell--pick {
+  cursor: pointer;
+}
+.rev-cell--pick:hover {
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.rev-cell--pick:focus {
+  outline: none;
+}
+.rev-cell--pick:focus-visible,
+.rev-cell--pick:focus {
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: var(--accent);
+  stroke-width: 3px;
+  vector-effect: non-scaling-stroke;
+}
+
+/* --- end of match: dim, then one soft sweep ------------------------------- */
+
+.rev-board--over .rev-board__svg {
+  filter: saturate(0.7) brightness(0.95);
+  transition: filter 400ms ease;
+}
+.rev-board--over .rev-hint,
+.rev-board--over .rev-ghost {
+  display: none;
+}
+/* One narrow, skewed band of light crossing the finished board — a full
+ * pass and then gone, not a loop. board.ts sizes/positions the rect; only
+ * the motion lives here. */
+.rev-board__sweep {
+  fill: var(--fg);
+  opacity: 0;
+  pointer-events: none;
+  transform-box: view-box;
+  transform-origin: center;
+  animation: rev-sweep 1200ms ease-out 220ms 1 both;
+}
+@keyframes rev-sweep {
+  0% {
+    opacity: 0;
+    transform: skewX(-12deg) translateX(0);
+  }
+  25% {
+    opacity: 0.14;
+  }
+  100% {
+    opacity: 0;
+    transform: skewX(-12deg) translateX(1250px);
+  }
+}
+
+/* Reduced motion: theme.css already collapses every animation/transition
+ * DURATION globally, but not the per-disc `animation-delay` board.ts sets
+ * for the flip cascade — a 7-step cascade would still stagger over ~280ms of
+ * pure delay. Cancel the animations outright here so the board simply shows
+ * its final state. */
+@media (prefers-reduced-motion: reduce) {
+  .rev-disc,
+  .rev-disc--flip,
+  .rev-disc--placed,
+  .rev-flip-outline,
+  .rev-board__sweep {
+    animation: none !important;
+    animation-delay: 0s !important;
+  }
+  .rev-board__sweep {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------- *
+ * Disc-count race bar (score-card.ts)
+ * ---------------------------------------------------------------------- */
+
+.rev-race {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.rev-race__track {
+  position: relative;
+  display: flex;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.rev-race__fill {
+  height: 100%;
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rev-race__fill--p1 {
+  background: var(--p1);
+  border-right: 1px solid var(--p1-rim);
+}
+.rev-race__fill--p2 {
+  background: var(--p2);
+  border-left: 1px solid var(--p2-rim);
+  margin-left: auto;
+}
+.rev-race__legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The kit's score-card chips and log/balance bars use --p1/--p2 directly.
+ * With near-black/near-ivory discs those need the same rim treatment as the
+ * board, or the light chip vanishes into a light card. */
+.score-card__chip--p1 {
+  border: 1.5px solid var(--p1-rim);
+}
+.score-card__chip--p2 {
+  border: 1.5px solid var(--p2-rim);
+}
+.bar-fill--p1 {
+  box-shadow: inset 0 0 0 1px var(--p1-rim);
+}
+.bar-fill--p2 {
+  box-shadow: inset 0 0 0 1px var(--p2-rim);
+}
+.mark--p2 {
+  /* Near-ivory text is unreadable on a light card; keep the glyph legible
+     while the chips/bars carry the colour identity. */
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--p2-rim);
+  text-underline-offset: 3px;
+}
+.mark--p1 {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--p1-rim);
+  text-underline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------------- *
+ * Turn status card (classic mode's top-right slot)
+ * ---------------------------------------------------------------------- */
+
+.turn-status__turn {
+  margin: 0;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Pass announcement — unmissable by design: a player with no legal move
+ * cannot do anything else, so the banner takes the accent colour, and when
+ * it is the LOCAL player's pass its button is the only enabled control on
+ * the screen.
+ * ---------------------------------------------------------------------- */
+
+.rev-pass {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  margin: 0.75rem 0;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  box-shadow: var(--shadow-sm);
+}
+.rev-pass__headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.rev-pass__headline::before {
+  content: "⤼";
+  color: var(--accent);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+.rev-pass__detail {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.rev-pass__button {
+  align-self: flex-start;
+}
+.rev-pass--auto {
+  animation: rev-pass-pulse 900ms ease-in-out 2;
+}
+@keyframes rev-pass-pulse {
+  0%,
+  100% {
+    box-shadow: var(--shadow-sm);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+}
+
+/* The free-move notice in bidding mode, where exactly one player has a legal
+ * move and there is nothing to auction. */
+.rev-free-move {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  font-size: 0.85rem;
+  margin: 0;
+}
+.rev-free-move__text {
+  margin: 0;
+}
+
+/* Bidding mode stacks two cards in the single top-left slot: the auction
+ * budgets AND the disc count, because in Reversi the discs decide the match
+ * while the budget only decides who gets to place them. */
+.rev-topleft-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* The final disc tally under the end-of-match headline. */
+.match-over__detail {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Invite / abandoned-match chrome (vs-friend.ts)
+ * ---------------------------------------------------------------------- */
+
+.invite-link {
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.result-banner {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--muted);
+  background: var(--surface);
+}
+
+/* ---------------------------------------------------------------------- *
+ * Standings preview (header trophy button — see standings.ts)
+ * ---------------------------------------------------------------------- */
+
+.standings-trigger {
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.5rem 0.65rem;
+}
+
+.standings-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, black 45%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100;
+}
+
+.standings-panel {
+  width: min(420px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.standings-panel__record {
+  margin: 0;
+}
+.standings-panel__pct {
+  color: var(--muted);
+}
+.standings-panel__badge {
+  align-self: flex-start;
+}
+.standings-panel__ladder-list {
+  list-style: decimal;
+  margin: 0;
+  padding-left: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+.standings-panel__ladder-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.standings-panel__rating {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.standings-panel__close {
+  align-self: flex-end;
+}
