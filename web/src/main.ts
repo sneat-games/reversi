@@ -29,6 +29,7 @@ import {
   roomIdFromLocation,
   createThemeToggle,
   createGamesFooter,
+  registerServiceWorker,
 } from "@sneat/game-kit";
 import { renderReversiMenu } from "./ui/menu";
 import { runVsBotClassic } from "./ui/vs-bot-classic";
@@ -56,7 +57,17 @@ export async function bootstrap(): Promise<void> {
   wireHomeLink();
   wireHeaderActions();
   wireFooter();
-  void maybeRegisterServiceWorker();
+  // The built service worker (see astro.config.mjs's `injectRegister: false`)
+  // registers only on this game's real deploy surface — never inside a
+  // CrazyGames/itch.io iframe, never under `astro dev`, and deliberately NOT
+  // on localhost either: a worker precaches built asset hashes, so on a dev
+  // machine it keeps serving the PREVIOUS build after a rebuild, which is a
+  // stale-preview trap that makes a landed fix look broken
+  // (game-kit/docs/APP-PLAYBOOK.md gotcha 2). Offline behaviour is a
+  // production concern; test it against a real *.sneat.games deploy. The
+  // kit's default gate (`hostname.endsWith(".sneat.games")`) implements
+  // exactly this.
+  void registerServiceWorker();
 
   const root = document.getElementById("game")!;
   root.innerHTML = "";
@@ -129,28 +140,4 @@ function wireHomeLink(): void {
     clearRoomFragment();
     window.location.reload();
   });
-}
-
-/**
- * The built service worker (see astro.config.mjs's `injectRegister: false`)
- * registers only on this game's real deploy surface — never inside a
- * CrazyGames/itch.io iframe, never under `astro dev`, and deliberately NOT
- * on localhost either: a worker precaches built asset hashes, so on a dev
- * machine it keeps serving the PREVIOUS build after a rebuild, which is a
- * stale-preview trap that makes a landed fix look broken
- * (game-kit/docs/APP-PLAYBOOK.md gotcha 2). Offline behaviour is a
- * production concern; test it against a real *.sneat.games deploy.
- */
-function shouldRegisterServiceWorker(): boolean {
-  return window.location.hostname.endsWith(".sneat.games");
-}
-
-async function maybeRegisterServiceWorker(): Promise<void> {
-  if (!shouldRegisterServiceWorker()) return;
-  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-  try {
-    await navigator.serviceWorker.register("/sw.js");
-  } catch (e) {
-    console.warn("[pwa] service worker registration failed", e);
-  }
 }
