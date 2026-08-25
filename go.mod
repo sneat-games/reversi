@@ -1,6 +1,6 @@
 module github.com/prizarena/reversi
 
-go 1.20
+go 1.27.0
 
 require (
 	cloud.google.com/go v0.110.0 // indirect
