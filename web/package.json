@@ -16,7 +16,7 @@
     "relay": "node ./node_modules/@sneat/game-kit/dist/test-relay.mjs 8787"
   },
   "dependencies": {
-    "@sneat/game-kit": "github:sneat-games/game-kit#844263d06ce1621106d465755803ce8dfa0e0595"
+    "@sneat/game-kit": "github:sneat-games/game-kit#v0.2.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
