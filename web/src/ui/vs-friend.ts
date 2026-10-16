@@ -25,6 +25,7 @@ import {
   updateRoom,
   inviteLink,
   leftRoom,
+  inviteBaseUrl,
   type PeerHandle,
   type WireMessage,
 } from "@sneat/game-kit";
@@ -89,16 +90,11 @@ function dispatch(root: HTMLElement, peer: PeerHandle, variant: ReversiVariant):
   return variant === "classic" ? runFriendClassicMatch(root, peer) : runFriendBiddingMatch(root, peer);
 }
 
-/** The invite link's base URL. Off `*.sneat.games` (CrazyGames, itch.io —
- *  see docs/DESIGN.md's "Distribution" section) the host's own origin isn't
- *  a working link for anyone else, so this falls back to the game's
- *  canonical sneat.games subdomain instead. */
+/** The invite link's base URL: this page on sneat.games (or a local
+ *  preview), `https://sneat.games/reversi/` inside a CrazyGames/itch.io
+ *  iframe — see game-kit's `inviteBaseUrl`. */
 function shareBaseUrl(): string {
-  const { hostname, origin, pathname } = window.location;
-  if (hostname.endsWith(".sneat.games") || hostname === "localhost" || hostname.startsWith("127.")) {
-    return `${origin}${pathname}`;
-  }
-  return "https://reversi.sneat.games/";
+  return inviteBaseUrl(GAME_ID);
 }
 
 function waitForHello(peer: PeerHandle): Promise<{ variant: ReversiVariant } | null> {

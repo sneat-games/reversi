@@ -3,7 +3,7 @@
 Reversi in your browser and in your messenger. Play a friend or practice
 against the bot.
 
-  - **Web**: [reversi.sneat.games](https://reversi.sneat.games) — classic
+  - **Web**: [sneat.games/reversi](https://sneat.games/reversi/) — classic
     Othello and a hidden-bid **bidding** variant, vs Bot (offline-capable) or
     vs a friend over WebRTC. Source in [`web/`](web/README.md).
   - **Telegram**: [@ReversiGameBot](https://t.me/ReversiGameBot) — source in

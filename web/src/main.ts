@@ -30,6 +30,7 @@ import {
   createThemeToggle,
   createGamesFooter,
   registerServiceWorker,
+  consumeMigratedStorage,
 } from "@sneat/game-kit";
 import { renderReversiMenu } from "./ui/menu";
 import { runVsBotClassic } from "./ui/vs-bot-classic";
@@ -38,6 +39,11 @@ import { runVsFriend } from "./ui/vs-friend";
 import { createStandingsButton } from "./ui/standings";
 
 export async function bootstrap(): Promise<void> {
+  // First, before anything reads localStorage: saves handed over from the
+  // retired reversi.sneat.games subdomain (`#migrate=`, written by
+  // sneat.games' /__migrate.html). A no-op on every other load; it strips
+  // only its own fragment parameter, so a `#room=` invite still works below.
+  consumeMigratedStorage();
   loadingStart();
   try {
     await initSdk();
@@ -64,9 +70,10 @@ export async function bootstrap(): Promise<void> {
   // machine it keeps serving the PREVIOUS build after a rebuild, which is a
   // stale-preview trap that makes a landed fix look broken
   // (game-kit/docs/APP-PLAYBOOK.md gotcha 2). Offline behaviour is a
-  // production concern; test it against a real *.sneat.games deploy. The
-  // kit's default gate (`hostname.endsWith(".sneat.games")`) implements
-  // exactly this.
+  // production concern; test it against a real sneat.games deploy. The
+  // kit's default gate (`isSneatGamesHost()`: the apex or *.sneat.games)
+  // implements exactly this, and it registers `sw.js` relative to the page
+  // with scope `./` — `/reversi/` on sneat.games, never the site root.
   void registerServiceWorker();
 
   const root = document.getElementById("game")!;

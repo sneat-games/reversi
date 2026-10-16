@@ -7,7 +7,7 @@ import globals from "globals";
 
 export default [
   {
-    ignores: ["dist", "node_modules", ".astro", ".wrangler", "host-worker", "test-results", "playwright-report"],
+    ignores: ["dist", "node_modules", ".astro", "test-results", "playwright-report"],
   },
   js.configs.recommended,
   ...astro.configs.recommended,
