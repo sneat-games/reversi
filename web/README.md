@@ -1,7 +1,7 @@
 # Reversi — Web
 
 Client-only Astro + TypeScript web build of Reversi (Othello), packaged for
-`reversi.sneat.games`, CrazyGames, and itch.io. No server-side game state:
+`https://sneat.games/reversi/`, CrazyGames, and itch.io. No server-side game state:
 vs-Bot plays entirely in the browser (offline-capable); vs-Friend uses the
 shared `webrtc-relay` signaling worker (no DB, no auth, no game state) plus a
 WebRTC DataChannel. Built on [`@sneat/game-kit`](https://github.com/sneat-games/game-kit)
@@ -19,7 +19,7 @@ Go test functions they port, so a Go rule change trips a TypeScript failure.
 npm install
 npm run dev          # http://localhost:4321
 npm run test         # vitest — engine, bot, and the UI (jsdom)
-npm run typecheck    # astro check + tsc (app + host-worker)
+npm run typecheck    # astro check + tsc
 npm run lint         # eslint flat config
 npm run build        # static dist/ — zippable for CrazyGames/itch.io
 npm run e2e          # Playwright — builds, serves, and runs the local relay
@@ -52,7 +52,7 @@ production relay.
   `SimpleAI`, plus BTTT-style restrained bid sizing) plays the other side,
   entirely client-side.
 - **vs Friend** — the host reserves a room and shares
-  `https://reversi.sneat.games/#room=<code>`; the guest's `#room=` link skips
+  `https://sneat.games/reversi/#room=<code>`; the guest's `#room=` link skips
   the menu entirely and learns the match's variant from the host's `hello`
   message (`src/ui/vs-friend.ts`) — see `game-kit/docs/DESIGN.md`'s PvP
   protocol v1.
@@ -97,7 +97,8 @@ rim, because at those two ends of the ramp contrast cannot come from hue.
 
 `@vite-pwa/astro` precaches the app shell. The service worker is registered
 manually by `main.ts` (not the plugin's auto-injected script) and only on
-`*.sneat.games` — never under `astro dev`, never on a local preview (a
+sneat.games (the apex or `*.sneat.games`), as `./sw.js` with scope
+`/reversi/` — never the site-root `/sw.js` — and never under `astro dev`, never on a local preview (a
 precached asset manifest would keep serving the previous build), and never
 inside a CrazyGames/itch.io iframe. Because vs-Bot needs no network at all,
 it stays fully playable offline once installed.
@@ -106,14 +107,22 @@ it stays fully playable offline once installed.
 
 | Surface | Worker/target | Domain |
 |---|---|---|
-| Static game | `web/host-worker/` (`reversi-game`) | `reversi.sneat.games` |
+| Static game | release asset → `sneat-games/sneat.games` (assets-only Worker `sneat-games`) | `sneat.games/reversi/` |
 | WebRTC signaling | shared `sneat-games/webrtc-relay` | `webrtc.sneat.games` |
 | CrazyGames build | `web/dist/` zip via Developer Portal | crazygames.com |
 | itch.io build | `web/dist/` zip via itch.io HTML project | *.itch.io |
 
-```sh
-npm run host:deploy     # reversi.sneat.games (requires `wrangler login`)
-```
+This repo deploys nothing itself. On every push to `main` that touches
+`web/`, `.github/workflows/web-ci.yml`'s `release` job publishes the tested
+`dist/` as a GitHub release `web-<12-char sha>` with
+`reversi-web-<sha>.tar.gz` + `.sha256`. To ship it, bump the pin in
+`sneat-games/sneat.games` (`node scripts/games-lock.mjs bump reversi
+web-<sha>`) and land that PR — its merge deploys sneat.games.
+
+The old `reversi.sneat.games` subdomain (Worker `reversi-game`) is retired:
+a zone redirect sends it to `sneat.games/reversi/`, and saves move over via
+sneat.games' `/__migrate.html` (imported by `consumeMigratedStorage()` in
+`main.ts`).
 
 This app does **not** run its own signaling worker — every kit game shares
 one relay deployment (`sneat-games/webrtc-relay`), namespaced by `gameId`
@@ -121,14 +130,14 @@ one relay deployment (`sneat-games/webrtc-relay`), namespaced by `gameId`
 
 ### CrazyGames + itch.io upload
 
-1. `npm run build` (the postbuild pass rewrites Astro's root-absolute asset
+1. `npm run build` (game-kit's `sneat-relativize-dist` postbuild pass rewrites Astro's root-absolute asset
    URLs to relative ones, so the bundle plays from any subpath)
 2. `cd dist && zip -r ../reversi.zip . && cd ..`
 3. **CrazyGames:** upload `reversi.zip` through the
    [Developer Portal](https://developer.crazygames.com/games); use the
    Preview tool to validate the SDK + Play-with-Friends surface (the SDK only
    activates on a CrazyGames domain/iframe — see `@sneat/game-kit`'s
-   `crazygames/sdk.ts`). Add `?cgsdk=1` to a `reversi.sneat.games` URL to
+   `crazygames/sdk.ts`). Add `?cgsdk=1` to a `sneat.games/reversi/` URL to
    exercise the SDK path off-platform.
 4. **itch.io:** create an HTML project, upload `reversi.zip`, and check "This
    file will be played in the browser". No further configuration needed — the
@@ -162,9 +171,7 @@ web/
 │   ├── layouts/Layout.astro
 │   ├── pages/index.astro
 │   └── main.ts               bootstrap: invite-link / menu loop
-├── host-worker/              CF Worker serving dist/ at reversi.sneat.games
 ├── e2e/                      Playwright specs
-├── scripts/relativize-dist.mjs   postbuild: root-absolute -> relative URLs
 ├── astro.config.mjs          @vite-pwa/astro integration
 ├── playwright.config.ts
 ├── tsconfig.json / vitest.config.ts / eslint.config.mjs

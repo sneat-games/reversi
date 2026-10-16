@@ -3,26 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Reversi/Othello (classic + bidding, vs Bot/vs Friend) — Astro + TypeScript web app for reversi.sneat.games. Built on @sneat/game-kit; see game-kit/docs/DESIGN.md §Reversi for the cross-game architecture.",
+  "description": "Reversi/Othello (classic + bidding, vs Bot/vs Friend) — Astro + TypeScript web app for sneat.games/reversi/. Built on @sneat/game-kit; see game-kit/docs/DESIGN.md §Reversi for the cross-game architecture.",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/relativize-dist.mjs",
+    "build": "astro build && sneat-relativize-dist",
     "preview": "astro preview",
-    "typecheck": "astro check && tsc --noEmit && tsc --noEmit --project host-worker/tsconfig.json",
+    "typecheck": "astro check && tsc --noEmit",
     "lint": "eslint . --ext .ts,.astro",
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "relay": "node ./node_modules/@sneat/game-kit/dist/test-relay.mjs 8787",
-    "host:dev": "wrangler dev --config host-worker/wrangler.jsonc",
-    "host:deploy": "wrangler deploy --config host-worker/wrangler.jsonc"
+    "relay": "node ./node_modules/@sneat/game-kit/dist/test-relay.mjs 8787"
   },
   "dependencies": {
-    "@sneat/game-kit": "github:sneat-games/game-kit#v0.1.7"
+    "@sneat/game-kit": "github:sneat-games/game-kit#844263d06ce1621106d465755803ce8dfa0e0595"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
-    "@cloudflare/workers-types": "^5.20260804.1",
     "@eslint/js": "^9.10.0",
     "@playwright/test": "^1.55.0",
     "@types/node": "^22.10.0",
@@ -36,8 +33,7 @@
     "jsdom": "^30.0.1",
     "typescript": "^5.7.0",
     "vite-plugin-pwa": "^1.2.0",
-    "vitest": "^2.1.0",
-    "wrangler": "^4.120.1"
+    "vitest": "^2.1.0"
   },
   "engines": {
     "node": ">=22"
